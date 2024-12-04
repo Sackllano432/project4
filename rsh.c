@@ -30,13 +30,12 @@ void sendmsg (char *user, char *target, char *msg) {
 	// TODO:
 	// Send a request to the server to send the message (msg) to the target user (target)
 	// by creating the message structure and writing it to server's FIFO
-
-
-
-
-
-
-
+	struct message message;
+	strcpy(message.source, user);
+	strcpy(message.target, target);
+	strcpy(message.msg, msg);
+	int server = open("serverFIFO", O_WRONLY);
+	write(server, &message, sizeof(message));
 
 }
 
@@ -48,11 +47,15 @@ void* messageListener(void *arg) {
 	// following format
 	// Incoming message from [source]: [message]
 	// put an end of line at the end of the message
+	int user = open(uName, O_RDONLY);
+	struct message msg;
+	while(1){
+		ssize_t bytesRead = read(user, &msg, sizeof(msg));
+		if(bytesRead > 0){
+			printf("Incoming message from %s: %s\n", msg.source, msg.msg);
 
-
-
-
-
+		}
+	}
 
 	pthread_exit((void*)0);
 }
@@ -85,10 +88,8 @@ int main(int argc, char **argv) {
 
     // TODO:
     // create the message listener thread
-
-
-
-
+	pthread_t listener_thread;
+	pthread_create(&listener_thread, NULL, messageListener, NULL);
 
     while (1) {
 
@@ -123,15 +124,29 @@ int main(int argc, char **argv) {
 		// printf("sendmsg: you have to specify target user\n");
 		// if no message is specified, you should print the followingA
  		// printf("sendmsg: you have to enter a message\n");
+		char *token = strtok(NULL, " ");
+		char *user = malloc(20);
+		strcpy(user, token);
+		if(token == NULL){
+			printf("sendmsg: you have specify target user\n");
+			continue;
+		}
 
+		char *message = malloc(256);
+		token = strtok(NULL, " ");
+		if(token == NULL){
+			printf("sendmsg: you have to enter a message\n");
+			continue;
+		}
 
-
-
-
-
-
-
-
+		strcat(message, token);
+		token = strtok(NULL, " ");
+		while(token != NULL){
+			strcat(message, " ");
+			strcat(message, token);
+			token = strtok(NULL, " ");
+		}
+		sendmsg(uName, user, message);
 
 		continue;
 	}
